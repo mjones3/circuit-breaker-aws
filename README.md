@@ -19,6 +19,8 @@ By tripping the circuit after “too many” 5xx or timeouts, you avoid piling u
 
 ## Architecture & Components
 
+![State Machine](images/architecture.png)
+
 1. Amazon API Gateway (HTTP API)
 2. AWS Lambda running com.mjones3.circuitbreaker.LambdaHandler
 3. Resilience4j CircuitBreaker wraps a blocking Java 11 HttpClient call
@@ -27,7 +29,8 @@ By tripping the circuit after “too many” 5xx or timeouts, you avoid piling u
 
 
 In `LambdaHandler`:
-    ```Java
+ 
+    ```
     CircuitBreakerConfig config = CircuitBreakerConfig.custom()
     .failureRateThreshold(50)                     // >50% failures trips breaker
     .slidingWindowType(COUNT_BASED)               // count of calls
@@ -63,6 +66,7 @@ A Terraform-created CloudWatch Alarm watches resilience4j_circuitbreaker_state f
 ## Build & Deploy
 
 1. Clone & enter the repo root (where `deploy.sh` lives):
+
     ```bash
     git clone https://github.com/mjones3/circuit-breaker-aws.git
     cd circuit-breaker-aws
@@ -84,10 +88,12 @@ A Terraform-created CloudWatch Alarm watches resilience4j_circuitbreaker_state f
 ## Invoke Test
 
 * Healthy run (200):
+
     ```bash
     curl $(terraform output -raw api_endpoint)/```
 
 * Simulate failure:
+
     ```bash
     # override to a 503 endpoint
     aws lambda update-function-configuration \
@@ -102,6 +108,7 @@ A Terraform-created CloudWatch Alarm watches resilience4j_circuitbreaker_state f
 ## Cleanup
 
 To tear everything down when you’re done:
+
     ```bash
     cd terraform
     terraform destroy -auto-approve```
