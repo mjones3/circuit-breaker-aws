@@ -41,6 +41,8 @@ In `LambdaHandler`:
     CircuitBreakerRegistry registry = CircuitBreakerRegistry.of(config);
     CircuitBreaker cb = registry.circuitBreaker("externalApiCB");```
 
+![State Machine](images/circuit-breaker-states.png)
+
 * CLOSED: all calls pass through.
 * OPEN: all calls fail immediately (return 503).
 * HALF_OPEN: after waitDurationInOpenState, allows a limited number of trial calls;
