@@ -1,2 +1,2 @@
-# circut-breaker-aws
+# circuit breaker aws
 Circuit Breaker Pattern: A serverless Java AWS Lambda service fronted by API Gateway that uses a Resilience4j circuit breaker to protect calls to an external API, streams metrics to CloudWatch, and triggers SNS alerts when the breaker opens.
