@@ -1,5 +1,5 @@
 # AWS Lambda Circuit Breaker with Resilience4j & CloudWatch
-A demonstration of the Circuit Breaker pattern running as a standalone Java AWS Lambda—fronted by Amazon API Gateway—using Resilience4j for fault-tolerance, Micrometer for metrics, CloudWatch for observability and alarms, and SNS for notifications when the circuit opens.
+A demonstration of the Circuit Breaker pattern running as a standalone Java AWS Lambda,fronted by Amazon API Gateway, using Resilience4j for fault-tolerance, Micrometer for metrics, CloudWatch for observability and alarms, and SNS for notifications when the circuit opens.
 
 ## Why Circuit Breaker?
 * In distributed systems, a single downstream service outage (or slowdown) can cascade, tying up threads and connections across your architecture. The Circuit Breaker pattern:
@@ -9,7 +9,7 @@ A demonstration of the Circuit Breaker pattern running as a standalone Java AWS 
 * Provides visibility into service health
 
 ## When to Use in Production
-Use it whenever your Lambda (or any microservice) makes calls to an uncontrolled or variable-latency external endpoint—for example:
+Use it whenever your Lambda (or any microservice) makes calls to an uncontrolled or variable-latency external endpoint for example:
 
 * A third-party payment gateway
 * An internal but low-SLA microservice
