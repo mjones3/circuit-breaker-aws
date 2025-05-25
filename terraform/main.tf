@@ -35,6 +35,10 @@ resource "aws_iam_role_policy_attachment" "lambda_logs" {
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
 }
 
+resource "aws_iam_role_policy_attachment" "lambda_metrics" {
+  role       = aws_iam_role.lambda_exec.name
+  policy_arn = "arn:aws:iam::aws:policy/CloudWatchFullAccess"
+}
 
 # Create the Lambda function using that ZIP
 resource "aws_lambda_function" "cb_function" {

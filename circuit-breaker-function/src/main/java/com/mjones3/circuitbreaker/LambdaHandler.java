@@ -16,30 +16,60 @@ import io.github.resilience4j.circuitbreaker.CallNotPermittedException;
 import io.github.resilience4j.circuitbreaker.CircuitBreaker;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerConfig;
 import io.github.resilience4j.circuitbreaker.CircuitBreakerRegistry;
+import io.github.resilience4j.micrometer.tagged.TaggedCircuitBreakerMetrics;
+import io.micrometer.cloudwatch2.CloudWatchConfig;
+import io.micrometer.cloudwatch2.CloudWatchMeterRegistry;
+import io.micrometer.core.instrument.Clock;
+import software.amazon.awssdk.services.cloudwatch.CloudWatchAsyncClient;
 
 public class LambdaHandler implements RequestHandler<APIGatewayProxyRequestEvent, APIGatewayProxyResponseEvent> {
 
-    // Shared HTTP client
+    // 1) Shared HTTP client
     private static final HttpClient httpClient = HttpClient.newBuilder()
             .version(HttpClient.Version.HTTP_2)
             .connectTimeout(Duration.ofSeconds(5))
             .build();
 
-    // Static CircuitBreaker instance
+    // 2) CircuitBreaker + CloudWatch registry
     private static final CircuitBreaker circuitBreaker;
+    private static final CloudWatchMeterRegistry meterRegistry;
 
     static {
-        CircuitBreakerConfig config = CircuitBreakerConfig.custom()
-                // trip if 50% of calls in the sliding window fail
+        // a) Configure the circuit breaker
+        CircuitBreakerConfig cbConfig = CircuitBreakerConfig.custom()
                 .failureRateThreshold(50)
-                // use a count-based window of 10 calls
                 .slidingWindowType(CircuitBreakerConfig.SlidingWindowType.COUNT_BASED)
                 .slidingWindowSize(10)
-                // stay open for 30 seconds before retrying
                 .waitDurationInOpenState(Duration.ofSeconds(30))
                 .build();
-        circuitBreaker = CircuitBreakerRegistry.of(config)
-                .circuitBreaker("externalApiCB");
+        CircuitBreakerRegistry cbRegistry = CircuitBreakerRegistry.of(cbConfig);
+        circuitBreaker = cbRegistry.circuitBreaker("externalApiCB");
+
+        // b) Configure Micrometer → CloudWatch (async client)
+        CloudWatchConfig cwConfig = new CloudWatchConfig() {
+            @Override
+            public String get(String key) {
+                return null;
+            }            // use defaults
+
+            @Override
+            public Duration step() {
+                return Duration.ofMinutes(1);
+            }// publish interval
+
+            @Override
+            public String namespace() {
+                return "mjones3/CircuitBreakers";
+            }
+        };
+
+        CloudWatchAsyncClient awsClient = CloudWatchAsyncClient.create();
+        meterRegistry = new ExampleCloudWatchMeterRegistry(cwConfig, Clock.SYSTEM, awsClient);
+
+        // c) Bind Resilience4j metrics to Micrometer
+        TaggedCircuitBreakerMetrics
+                .ofCircuitBreakerRegistry(cbRegistry)
+                .bindTo(meterRegistry);
     }
 
     @Override
@@ -47,34 +77,39 @@ public class LambdaHandler implements RequestHandler<APIGatewayProxyRequestEvent
             APIGatewayProxyRequestEvent request,
             Context context) {
 
-        // Decorate your blocking call with the circuit breaker,
-        // using a lambda that catches checked Exceptions.
+        // 3) Decorate and invoke your blocking HTTP call
         Supplier<String> decorated = CircuitBreaker
                 .decorateSupplier(circuitBreaker, () -> {
                     try {
                         return callExternalApi();
                     } catch (Exception ex) {
-                        // wrap checked exceptions as unchecked
                         throw new RuntimeException(ex);
                     }
                 });
 
+        APIGatewayProxyResponseEvent response;
         try {
             String body = decorated.get();
-            return new APIGatewayProxyResponseEvent()
+            response = new APIGatewayProxyResponseEvent()
                     .withStatusCode(200)
                     .withBody(body);
-        } catch (CallNotPermittedException e) {
-            // Circuit is open
-            return new APIGatewayProxyResponseEvent()
+
+        } catch (CallNotPermittedException open) {
+            response = new APIGatewayProxyResponseEvent()
                     .withStatusCode(503)
                     .withBody("{\"message\":\"Circuit is open\"}");
+
         } catch (Exception e) {
-            // Downstream or other failure
-            return new APIGatewayProxyResponseEvent()
+            response = new APIGatewayProxyResponseEvent()
                     .withStatusCode(502)
                     .withBody("{\"message\":\"Downstream failure: " + e.getMessage() + "\"}");
         }
+
+        ((ExampleCloudWatchMeterRegistry) meterRegistry).publishNow();
+        // Note: we no longer call meterRegistry.publish() here
+        // StepMeterRegistry (which CloudWatchMeterRegistry extends) 
+        // will push metrics on its own schedule (every 'step' interval).
+        return response;
     }
 
     private String callExternalApi() throws Exception {
