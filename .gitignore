@@ -1,0 +1,16 @@
+circuit-breaker-function/mvnw
+circuit-breaker-function/mvnw.cmd
+circuit-breaker-function/dependency-reduced-pom.xml
+circuit-breaker-function/.mvn/wrapper/maven-wrapper.properties
+circuit-breaker-function/.gitignore
+circuit-breaker-function/.gitattributes
+terraform/.terraform.lock.hcl
+terraform/terraform.tfstate
+terraform/terraform.tfstate.backup
+terraform/.terraform/providers/registry.terraform.io/hashicorp/archive/2.7.1/darwin_amd64/LICENSE.txt
+terraform/.terraform/providers/registry.terraform.io/hashicorp/archive/2.7.1/darwin_amd64/terraform-provider-archive_v2.7.1_x5
+terraform/.terraform/providers/registry.terraform.io/hashicorp/aws/5.61.0/darwin_amd64/LICENSE.txt
+terraform/.terraform/providers/registry.terraform.io/hashicorp/aws/5.61.0/darwin_amd64/terraform-provider-aws_v5.61.0_x5
+terraform/.terraform/providers/registry.terraform.io/hashicorp/aws/5.98.0/darwin_amd64/LICENSE.txt
+terraform/.terraform/providers/registry.terraform.io/hashicorp/aws/5.98.0/darwin_amd64/terraform-provider-aws_v5.98.0_x5
+terraform/build/cb-function.zip
